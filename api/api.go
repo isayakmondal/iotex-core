@@ -382,7 +382,6 @@ func (api *Server) GetServerMeta(ctx context.Context,
 // SendAction is the API to send an action to blockchain.
 func (api *Server) SendAction(ctx context.Context, in *iotexapi.SendActionRequest) (*iotexapi.SendActionResponse, error) {
 	span := tracer.SpanFromContext(ctx)
-	//tags output
 	span.SetAttributes(attribute.String("actType", fmt.Sprintf("%T", in.GetAction().GetCore())))
 	defer span.End()
 	log.L().Debug("receive send action request")
