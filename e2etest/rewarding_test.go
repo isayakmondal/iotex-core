@@ -2,6 +2,7 @@ package e2etest
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -241,7 +242,7 @@ func TestBlockEpochReward(t *testing.T) {
 	rps := make([]*rewarding.Protocol, numNodes)
 	sfs := make([]factory.Factory, numNodes)
 	chains := make([]blockchain.Blockchain, numNodes)
-	apis := make([]*api.Server, numNodes)
+	apis := make([]*api.ServerV2, numNodes)
 	//Map of expected unclaimed balance for each reward address
 	exptUnclaimed := make(map[string]*big.Int, numNodes)
 	//Map of real unclaimed balance for each reward address
@@ -532,14 +533,14 @@ func injectClaim(
 
 func updateExpectationWithPendingClaimList(
 	t *testing.T,
-	api *api.Server,
+	api *api.ServerV2,
 	exptUnclaimed map[string]*big.Int,
 	claimedAmount map[string]*big.Int,
 	pendingClaimActions map[hash.Hash256]bool,
 ) bool {
 	updated := false
 	for selpHash, expectedSuccess := range pendingClaimActions {
-		receipt, err := api.GetReceiptByActionHash(selpHash)
+		receipt, _, err := api.GetReceiptByAction(hex.EncodeToString(selpHash[:]))
 
 		if err == nil {
 			selp, err := api.GetActionByActionHash(selpHash)

@@ -267,7 +267,7 @@ func (core *coreService) SendAction(ctx context.Context, in *iotextypes.Action, 
 	}
 
 	// reject action if chainID is not matched at KamchatkaHeight
-	if core.cfg.Genesis.Blockchain.IsKamchatka(core.bc.TipHeight()) {
+	if core.cfg.Genesis.Blockchain.IsToBeEnabled(core.bc.TipHeight()) {
 		if core.bc.ChainID() != chainID {
 			return "", status.Errorf(codes.InvalidArgument, "ChainID does not match, expecting %d, got %d", core.bc.ChainID(), chainID)
 		}
@@ -717,16 +717,6 @@ func (core *coreService) ReceiptByActionHash(h hash.Hash256) (*action.Receipt, e
 	return core.dao.GetReceiptByActionHash(h, actIndex.BlockHeight())
 }
 
-// ActionByActionHash returns action by action hash
-func (core *coreService) ActionByActionHash(h hash.Hash256) (action.SealedEnvelope, error) {
-	if !core.hasActionIndex || core.indexer == nil {
-		return action.SealedEnvelope{}, status.Error(codes.NotFound, blockindex.ErrActionIndexNA.Error())
-	}
-
-	selp, _, _, _, err := core.getActionByActionHash(h)
-	return selp, err
-}
-
 // TransactionLogByActionHash returns transaction log by action hash
 func (core *coreService) TransactionLogByActionHash(actHash string) (*iotextypes.TransactionLog, error) {
 	if !core.hasActionIndex || core.indexer == nil {
@@ -1128,56 +1118,56 @@ func (core *coreService) getBlockMetaByHeight(height uint64) (*iotextypes.BlockM
 	return generateBlockMeta(blk), nil
 }
 
-// // generateBlockMeta generates BlockMeta from block
-// func generateBlockMeta(blk *block.Block) *iotextypes.BlockMeta {
-// 	header := blk.Header
-// 	height := header.Height()
-// 	ts, _ := ptypes.TimestampProto(header.Timestamp())
-// 	var (
-// 		producerAddress string
-// 		h               hash.Hash256
-// 	)
-// 	if blk.Height() > 0 {
-// 		producerAddress = header.ProducerAddress()
-// 		h = header.HashBlock()
-// 	} else {
-// 		h = block.GenesisHash()
-// 	}
-// 	txRoot := header.TxRoot()
-// 	receiptRoot := header.ReceiptRoot()
-// 	deltaStateDigest := header.DeltaStateDigest()
-// 	prevHash := header.PrevHash()
+// generateBlockMeta generates BlockMeta from block
+func generateBlockMeta(blk *block.Block) *iotextypes.BlockMeta {
+	header := blk.Header
+	height := header.Height()
+	ts, _ := ptypes.TimestampProto(header.Timestamp())
+	var (
+		producerAddress string
+		h               hash.Hash256
+	)
+	if blk.Height() > 0 {
+		producerAddress = header.ProducerAddress()
+		h = header.HashBlock()
+	} else {
+		h = block.GenesisHash()
+	}
+	txRoot := header.TxRoot()
+	receiptRoot := header.ReceiptRoot()
+	deltaStateDigest := header.DeltaStateDigest()
+	prevHash := header.PrevHash()
 
-// 	blockMeta := iotextypes.BlockMeta{
-// 		Hash:              hex.EncodeToString(h[:]),
-// 		Height:            height,
-// 		Timestamp:         ts,
-// 		ProducerAddress:   producerAddress,
-// 		TxRoot:            hex.EncodeToString(txRoot[:]),
-// 		ReceiptRoot:       hex.EncodeToString(receiptRoot[:]),
-// 		DeltaStateDigest:  hex.EncodeToString(deltaStateDigest[:]),
-// 		PreviousBlockHash: hex.EncodeToString(prevHash[:]),
-// 	}
-// 	if logsBloom := header.LogsBloomfilter(); logsBloom != nil {
-// 		blockMeta.LogsBloom = hex.EncodeToString(logsBloom.Bytes())
-// 	}
-// 	blockMeta.NumActions = int64(len(blk.Actions))
-// 	blockMeta.TransferAmount = blk.CalculateTransferAmount().String()
-// 	blockMeta.GasLimit, blockMeta.GasUsed = gasLimitAndUsed(blk)
-// 	return &blockMeta
-// }
+	blockMeta := iotextypes.BlockMeta{
+		Hash:              hex.EncodeToString(h[:]),
+		Height:            height,
+		Timestamp:         ts,
+		ProducerAddress:   producerAddress,
+		TxRoot:            hex.EncodeToString(txRoot[:]),
+		ReceiptRoot:       hex.EncodeToString(receiptRoot[:]),
+		DeltaStateDigest:  hex.EncodeToString(deltaStateDigest[:]),
+		PreviousBlockHash: hex.EncodeToString(prevHash[:]),
+	}
+	if logsBloom := header.LogsBloomfilter(); logsBloom != nil {
+		blockMeta.LogsBloom = hex.EncodeToString(logsBloom.Bytes())
+	}
+	blockMeta.NumActions = int64(len(blk.Actions))
+	blockMeta.TransferAmount = blk.CalculateTransferAmount().String()
+	blockMeta.GasLimit, blockMeta.GasUsed = gasLimitAndUsed(blk)
+	return &blockMeta
+}
 
-// // GasLimitAndUsed returns the gas limit and used in a block
-// func gasLimitAndUsed(b *block.Block) (uint64, uint64) {
-// 	var gasLimit, gasUsed uint64
-// 	for _, tx := range b.Actions {
-// 		gasLimit += tx.GasLimit()
-// 	}
-// 	for _, r := range b.Receipts {
-// 		gasUsed += r.GasConsumed
-// 	}
-// 	return gasLimit, gasUsed
-// }
+// GasLimitAndUsed returns the gas limit and used in a block
+func gasLimitAndUsed(b *block.Block) (uint64, uint64) {
+	var gasLimit, gasUsed uint64
+	for _, tx := range b.Actions {
+		gasLimit += tx.GasLimit()
+	}
+	for _, r := range b.Receipts {
+		gasUsed += r.GasConsumed
+	}
+	return gasLimit, gasUsed
+}
 
 func (core *coreService) getGravityChainStartHeight(epochHeight uint64) (uint64, error) {
 	gravityChainStartHeight := epochHeight

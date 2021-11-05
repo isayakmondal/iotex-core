@@ -58,7 +58,7 @@ type ChainService struct {
 	p2pAgent          p2p.Agent
 	electionCommittee committee.Committee
 	// TODO: explorer dependency deleted at #1085, need to api related params
-	api                *api.Server
+	api                *api.ServerV2
 	indexBuilder       *blockindex.IndexBuilder
 	bfIndexer          blockindex.BloomFilterIndexer
 	candidateIndexer   *poll.CandidateIndexer
@@ -416,8 +416,7 @@ func New(
 		}
 	}
 
-	var apiSvr *api.Server
-	apiSvr, err = api.NewServer(
+	apiSvr, err := api.NewServerV2(
 		cfg,
 		chain,
 		bs,
@@ -631,7 +630,7 @@ func (cs *ChainService) ActionPool() actpool.ActPool {
 }
 
 // APIServer returns the API server
-func (cs *ChainService) APIServer() *api.Server {
+func (cs *ChainService) APIServer() *api.ServerV2 {
 	return cs.api
 }
 
